@@ -57,6 +57,17 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "blood-rust": "hsl(var(--blood-rust))",
+        "shadow-black": "hsl(var(--shadow-black))",
+        "fog-gray": "hsl(var(--fog-gray))",
+        "sepia-brown": "hsl(var(--sepia-brown))",
+        "bone-white": "hsl(var(--bone-white))",
+        "antique-brass": "hsl(var(--antique-brass))",
+        "ash-gray": "hsl(var(--ash-gray))",
+      },
+      fontFamily: {
+        serif: ['Playfair Display', 'serif'],
+        gothic: ['Cinzel', 'serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -80,10 +91,48 @@ export default {
             height: "0",
           },
         },
+        "fog-drift": {
+          "0%, 100%": {
+            transform: "translateX(0) translateY(0)",
+            opacity: "0.15",
+          },
+          "50%": {
+            transform: "translateX(-30px) translateY(-20px)",
+            opacity: "0.25",
+          },
+        },
+        "flicker": {
+          "0%, 100%": { opacity: "1" },
+          "41%": { opacity: "1" },
+          "42%": { opacity: "0.8" },
+          "43%": { opacity: "1" },
+          "45%": { opacity: "0.9" },
+          "46%": { opacity: "1" },
+        },
+        "shadow-shift": {
+          "0%, 100%": {
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.6)",
+          },
+          "50%": {
+            boxShadow: "0 15px 60px rgba(139, 0, 0, 0.3)",
+          },
+        },
+        "glow-pulse": {
+          "0%, 100%": {
+            filter: "drop-shadow(0 0 2px hsl(5 55% 25% / 0.3))",
+          },
+          "50%": {
+            filter: "drop-shadow(0 0 8px hsl(5 55% 25% / 0.5))",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fog-drift": "fog-drift 20s ease-in-out infinite",
+        "flicker": "flicker 5s linear infinite",
+        "shadow-shift": "shadow-shift 4s ease-in-out infinite",
+        "glow-pulse": "glow-pulse 3s ease-in-out infinite",
       },
     },
   },
