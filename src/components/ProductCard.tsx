@@ -1,17 +1,20 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
+import AddToCartButton from "@/components/AddToCartButton";
 
 interface ProductCardProps {
+  id: string;
   title: string;
   price: string;
+  priceValue: number;
   image: string;
   category: string;
   cursed?: boolean;
 }
 
-const ProductCard = ({ title, price, image, category, cursed = false }: ProductCardProps) => {
+const ProductCard = ({ id, title, price, priceValue, image, category, cursed = false }: ProductCardProps) => {
   return (
     <Card className="group relative overflow-hidden bg-card border-border/50 hover:border-blood-rust/50 transition-all duration-500 shadow-shift">
       <div className="relative overflow-hidden aspect-square">
@@ -55,13 +58,7 @@ const ProductCard = ({ title, price, image, category, cursed = false }: ProductC
         <span className="text-2xl font-gothic font-bold text-antique-brass">
           {price}
         </span>
-        <Button 
-          size="sm" 
-          variant="outline"
-          className="border-blood-rust/50 text-blood-rust hover:bg-blood-rust hover:text-bone-white font-gothic text-xs tracking-wider"
-        >
-          Add to Cart
-        </Button>
+        <AddToCartButton product={{ id, title, price, priceValue, image, category }} />
       </CardFooter>
     </Card>
   );

@@ -5,8 +5,10 @@ interface CategorySectionProps {
   title: string;
   subtitle: string;
   products: Array<{
+    id: string;
     title: string;
     price: string;
+    priceValue: number;
     image: string;
     category: string;
     cursed?: boolean;

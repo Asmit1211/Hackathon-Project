@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Skull, ShoppingCart, Menu, X } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { ShoppingCart, Menu, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { itemCount } = useCart();
 
   const navItems = [
     { label: "Cursed Dolls", href: "#dolls" },
@@ -18,7 +21,8 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <Skull className="w-8 h-8 text-blood-rust animate-glow-pulse" strokeWidth={1.5} />
+            {/* Uses public/logo.png at the app root */}
+            <img src="/logo.png" alt="Cursed Relics Logo" className="h-12" />
             <span className="font-gothic text-xl font-bold text-bone-white tracking-wider">
               CURSED RELICS
             </span>
@@ -40,14 +44,17 @@ const Navigation = () => {
           {/* Cart & Mobile Menu */}
           <div className="flex items-center space-x-4">
             <Button
+              asChild
               variant="ghost"
               size="icon"
               className="relative text-antique-brass hover:text-antique-brass/80"
             >
-              <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 bg-blood-rust text-bone-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-gothic">
-                0
-              </span>
+              <Link to="/cart" aria-label="View your cart">
+                <ShoppingCart className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 bg-blood-rust text-bone-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-gothic">
+                  {itemCount}
+                </span>
+              </Link>
             </Button>
 
             <Button
