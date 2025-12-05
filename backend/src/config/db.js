@@ -9,7 +9,7 @@ async function connectDB() {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
-    logger.info("Connected to MongoDB Atlas for Cursed Relics");
+    logger.info("MongoDB Atlas Connected Successfully");
     logger.info(`Database: ${mongoose.connection.db.databaseName}`);
   } catch (err) {
     logger.error("MongoDB connection error", { error: err });

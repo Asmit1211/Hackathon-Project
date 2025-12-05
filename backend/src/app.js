@@ -20,9 +20,15 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // CORS
+// In development, allow any origin so the Vite dev server can talk to the API
+// without CORS issues. In other environments, fall back to the configured
+// CORS_ORIGIN.
 app.use(
   cors({
-    origin: ENV.CORS_ORIGIN,
+    origin:
+      ENV.NODE_ENV === "development" || !ENV.CORS_ORIGIN
+        ? true
+        : ENV.CORS_ORIGIN,
     credentials: true,
   })
 );

@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { loadRazorpayScript } from "@/lib/razorpay";
 import { toast } from "@/hooks/use-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
-// Fallback to your test key if VITE_RAZORPAY_KEY_ID is not defined
-const RAZORPAY_KEY_ID =
-  import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_RnSLn49vbwPyd9";
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
 const Checkout = () => {
   const { items, subtotal, clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [contact, setContact] = useState({
@@ -47,10 +47,21 @@ const Checkout = () => {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contact.email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!RAZORPAY_KEY_ID) {
       toast({
         title: "Razorpay key missing",
-        description: "Set VITE_RAZORPAY_KEY_ID to enable the payment modal.",
+        description: "Set VITE_RAZORPAY_KEY_ID in your .env file to enable the payment modal.",
         variant: "destructive",
       });
       return;
@@ -58,31 +69,61 @@ const Checkout = () => {
 
     setProcessing(true);
     try {
+      // Load Razorpay script
       await loadRazorpayScript();
+
+      // Create Razorpay order
+      const requestBody = {
+          amount: grandTotal,
+          currency: "INR",
+          customer: {
+            email: contact.email || user?.email,
+            name: contact.name || user?.displayName || undefined,
+            phone: contact.phone || undefined,
+            firebaseUid: user?.uid || undefined,
+          },
+          items: items.map((item) => ({
+            productId: item.id,
+            title: item.title,
+            category: item.category,
+            image: item.image,
+            quantity: item.quantity,
+            price: item.priceValue,
+            subtotal: item.quantity * item.priceValue,
+          })),
+          notes: {
+            customerName: contact.name || "",
+            customerEmail: contact.email || user?.email || "",
+            customerPhone: contact.phone || "",
+            address: address || "",
+          },
+        };
+
+      console.log("Sending Razorpay order request:", requestBody);
 
       const response = await fetch(`${API_BASE_URL}/payments/razorpay/order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: grandTotal,
-          currency: "INR",
-          notes: {
-            customerName: contact.name,
-            customerEmail: contact.email,
-            customerPhone: contact.phone,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      const payload = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to create Razorpay order. Ensure you are authenticated against the backend API.");
+        const errorMessage = payload?.message || "Failed to create Razorpay order";
+        console.error("Razorpay order creation failed:", payload);
+        throw new Error(errorMessage);
       }
 
-      const payload = await response.json();
       const { order, keyId } = payload.data || {};
 
-      if (!order || !window.Razorpay) {
-        throw new Error("Razorpay SDK not available.");
+      if (!order || !order.id) {
+        console.error("Invalid order response:", payload);
+        throw new Error("Invalid order response from server");
+      }
+
+      if (!window.Razorpay) {
+        throw new Error("Razorpay SDK not loaded. Please refresh and try again.");
       }
 
       const checkout = new window.Razorpay({
@@ -93,20 +134,46 @@ const Checkout = () => {
         name: "Cursed Relics",
         description: "Haunted artifact purchase",
         prefill: {
-          name: contact.name,
-          email: contact.email,
+          name: contact.name || user?.displayName || "",
+          email: contact.email || user?.email || "",
           contact: contact.phone,
         },
         notes: {
           address,
         },
-        handler: () => {
-          toast({
-            title: "Offer accepted",
-            description: "Your payment succeeded. The relics are on their way.",
-          });
-          clearCart();
-          navigate("/");
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch(`${API_BASE_URL}/payments/razorpay/verify`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyPayload = await verifyRes.json();
+
+            if (!verifyRes.ok) {
+              console.error("Payment verification failed:", verifyPayload);
+              throw new Error(verifyPayload?.message || "Payment verification failed");
+            }
+
+            toast({
+              title: "Offer accepted",
+              description: "Your payment succeeded. The relics are on their way.",
+            });
+            clearCart();
+            navigate("/");
+          } catch (err) {
+            console.error("Payment verification error:", err);
+            toast({
+              title: "Payment verification failed",
+              description: err instanceof Error ? err.message : "Unknown error verifying payment.",
+              variant: "destructive",
+            });
+          }
         },
         modal: {
           ondismiss: () => {
@@ -114,19 +181,19 @@ const Checkout = () => {
               title: "Payment cancelled",
               description: "No worries—your cart is still intact.",
             });
+            setProcessing(false);
           },
         },
       });
 
       checkout.open();
     } catch (err) {
-      console.error(err);
+      console.error("Razorpay checkout error:", err);
       toast({
         title: "Unable to start payment",
         description: err instanceof Error ? err.message : "Unknown error occurred.",
         variant: "destructive",
       });
-    } finally {
       setProcessing(false);
     }
   };
@@ -153,12 +220,14 @@ const Checkout = () => {
                 placeholder="Full name"
                 value={contact.name}
                 onChange={(event) => setContact({ ...contact, name: event.currentTarget.value })}
+                required
               />
               <Input
-                placeholder="Email address"
+                placeholder="Email address (e.g., user@example.com)"
                 type="email"
                 value={contact.email}
                 onChange={(event) => setContact({ ...contact, email: event.currentTarget.value })}
+                required
               />
               <Input
                 placeholder="Phone (optional)"

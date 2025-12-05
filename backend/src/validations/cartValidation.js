@@ -38,7 +38,7 @@ const createPaymentIntentSchema = z.object({
 
 const createRazorpayOrderSchema = z.object({
   body: z.object({
-    amount: z.number().positive(),
+    amount: z.coerce.number().positive(),
     currency: z
       .string()
       .min(3)
@@ -47,6 +47,38 @@ const createRazorpayOrderSchema = z.object({
       .optional(),
     receipt: z.string().max(191).optional(),
     notes: z.record(z.string()).optional(),
+    // Optional linkage to a domain Order; current frontend does not send this but
+    // other clients (e.g. admin tools) can.
+    orderId: z.string().length(24).optional(),
+    customer: z
+      .object({
+        email: z.string().email().optional(),
+        name: z.string().min(1).optional(),
+        phone: z.string().optional(),
+        firebaseUid: z.string().optional(),
+      })
+      .optional(),
+    items: z
+      .array(
+        z.object({
+          productId: z.string(),
+          title: z.string(),
+          category: z.string().optional(),
+          image: z.string().optional(),
+          quantity: z.coerce.number().int().positive(),
+          price: z.coerce.number().nonnegative(),
+          subtotal: z.coerce.number().nonnegative(),
+        })
+      )
+      .optional(),
+  }),
+});
+
+const verifyRazorpayPaymentSchema = z.object({
+  body: z.object({
+    razorpayOrderId: z.string().min(1),
+    razorpayPaymentId: z.string().min(1),
+    razorpaySignature: z.string().min(1),
   }),
 });
 
@@ -57,4 +89,5 @@ module.exports = {
   checkoutSchema,
   createPaymentIntentSchema,
   createRazorpayOrderSchema,
+  verifyRazorpayPaymentSchema,
 };

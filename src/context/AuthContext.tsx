@@ -13,8 +13,9 @@ import {
 } from "firebase/auth";
 
 import { auth } from "@/lib/firebase";
-import { sendWelcomeEmail } from "@/lib/email";
 import { useToast } from "@/hooks/use-toast";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
 
 interface AuthContextValue {
   user: User | null;
@@ -52,6 +53,22 @@ export const AuthProvider = ({ children }: Props) => {
   const googleProvider = new GoogleAuthProvider();
   const appleProvider = new OAuthProvider("apple.com");
 
+  const notifyBackendLogin = async (user: User | null) => {
+    if (!user?.email) return;
+    try {
+      await fetch(`${API_BASE_URL}/auth/firebase-login-notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.displayName || undefined,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to notify backend of Firebase login", err);
+    }
+  };
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
@@ -79,7 +96,8 @@ export const AuthProvider = ({ children }: Props) => {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      void notifyBackendLogin(cred.user);
       toast({
         title: "Welcome back to the crypt",
         description: "The relics remember you.",
@@ -95,6 +113,7 @@ export const AuthProvider = ({ children }: Props) => {
     setLoading(true);
     try {
       const cred = await signInWithPopup(auth, googleProvider);
+      void notifyBackendLogin(cred.user);
       toast({
         title: "The veil parted for Google",
         description: `Welcome, ${cred.user.displayName || cred.user.email}.`,
@@ -117,6 +136,7 @@ export const AuthProvider = ({ children }: Props) => {
     setLoading(true);
     try {
       const cred = await signInWithPopup(auth, appleProvider);
+      void notifyBackendLogin(cred.user);
       toast({
         title: "An apple falls in the dark",
         description: `Welcome, ${cred.user.displayName || cred.user.email}.`,
@@ -142,9 +162,14 @@ export const AuthProvider = ({ children }: Props) => {
       if (cred.user && name) {
         await updateProfile(cred.user, { displayName: name });
       }
-      // Fire-and-forget welcome email
-      sendWelcomeEmail({ email, name }).catch((err) => {
-        console.error("Failed to send welcome email", err);
+
+      // Ask backend to send spooky welcome email via SMTP (fire-and-forget)
+      fetch(`${API_BASE_URL}/auth/firebase-signup-notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name }),
+      }).catch((err) => {
+        console.error("Failed to notify backend of Firebase signup", err);
       });
 
       toast({

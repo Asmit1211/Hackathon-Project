@@ -13,11 +13,14 @@ function validate(schema) {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
+        const errors = err.errors.map((e) => ({ path: e.path, message: e.message }));
+        console.error("Validation failed:", JSON.stringify(errors, null, 2));
+        console.error("Request body:", JSON.stringify(req.body, null, 2));
         return failure(
           res,
           "Validation error",
           422,
-          err.errors.map((e) => ({ path: e.path, message: e.message }))
+          errors
         );
       }
       return next(err);

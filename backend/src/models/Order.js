@@ -47,7 +47,8 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
       index: true,
     },
-    paymentProvider: { type: String, enum: ["stripe"], default: "stripe" },
+    // Stripe is the default, but we also support Razorpay as a payment provider.
+    paymentProvider: { type: String, enum: ["stripe", "razorpay"], default: "stripe" },
     paymentIntentId: { type: String },
     transactionId: { type: String },
     shippingAddress: shippingAddressSchema,

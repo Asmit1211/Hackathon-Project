@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { ShoppingCart, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { itemCount } = useCart();
+  const { user, openLogin, openSignup, logout } = useAuth();
 
   const navItems = [
     { label: "Cursed Dolls", href: "#dolls" },
@@ -41,8 +43,45 @@ const Navigation = () => {
             ))}
           </div>
 
-          {/* Cart & Mobile Menu */}
+          {/* Cart, Auth & Mobile Menu */}
           <div className="flex items-center space-x-4">
+            {/* Desktop auth buttons */}
+            <div className="hidden md:flex items-center space-x-3">
+              {user ? (
+                <>
+                  <span className="text-xs font-serif text-muted-foreground max-w-[140px] truncate">
+                    {user.displayName || user.email}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-gothic text-xs tracking-wide"
+                    onClick={() => void logout()}
+                  >
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-gothic text-xs tracking-wide"
+                    onClick={openLogin}
+                  >
+                    Sign in
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="font-gothic text-xs tracking-wide"
+                    onClick={openSignup}
+                  >
+                    Sign up
+                  </Button>
+                </>
+              )}
+            </div>
+
             <Button
               asChild
               variant="ghost"
@@ -81,6 +120,51 @@ const Navigation = () => {
                 {item.label}
               </a>
             ))}
+
+            <div className="pt-3 flex items-center gap-3">
+              {user ? (
+                <>
+                  <span className="flex-1 text-xs font-serif text-muted-foreground truncate">
+                    {user.displayName || user.email}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-gothic text-xs tracking-wide flex-1"
+                    onClick={() => {
+                      void logout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-gothic text-xs tracking-wide flex-1"
+                    onClick={() => {
+                      openLogin();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    Sign in
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="font-gothic text-xs tracking-wide flex-1"
+                    onClick={() => {
+                      openSignup();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    Sign up
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

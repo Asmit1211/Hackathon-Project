@@ -5,7 +5,7 @@ const {
   rotateRefreshToken,
   clearRefreshToken,
 } = require("../services/authService");
-const { sendLoginNotification } = require("../services/emailService");
+const { sendWelcomeEmail } = require("../services/emailService");
 
 function setAuthCookies(res, accessToken, refreshToken) {
   // For hackathon simplicity, we return tokens in body; cookies can be added later.
@@ -19,6 +19,8 @@ async function register(req, res, next) {
     const { name, email, password } = req.validated.body;
     const { user, accessToken, refreshToken } = await registerUser({ name, email, password });
     setAuthCookies(res, accessToken, refreshToken);
+    // Fire-and-forget spooky welcome email for new backend user registrations
+    void sendWelcomeEmail({ to: user.email, name: user.name, context: "signup" });
     return success(
       res,
       {
@@ -44,7 +46,7 @@ async function login(req, res, next) {
     const { email, password } = req.validated.body;
     const { user, accessToken, refreshToken } = await loginUser({ email, password });
     setAuthCookies(res, accessToken, refreshToken);
-    void sendLoginNotification({ to: user.email, name: user.name });
+    void sendWelcomeEmail({ to: user.email, name: user.name, context: "login" });
     return success(res, {
       user: {
         id: user._id,
@@ -99,9 +101,35 @@ async function logout(req, res, next) {
   }
 }
 
+// Endpoint used when Firebase-only auth is responsible for authentication.
+// The frontend calls this after a successful Firebase login so the backend can
+// send an SMTP email without handling credentials in the browser.
+async function firebaseLoginNotify(req, res, next) {
+  try {
+    const { email, name } = req.validated.body;
+    void sendWelcomeEmail({ to: email, name, context: "login" });
+    return success(res, {}, "Login welcome email enqueued");
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Called from the frontend after a successful Firebase signup
+async function firebaseSignupNotify(req, res, next) {
+  try {
+    const { email, name } = req.validated.body;
+    void sendWelcomeEmail({ to: email, name, context: "signup" });
+    return success(res, {}, "Signup welcome email enqueued");
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   register,
   login,
   refreshToken,
   logout,
+  firebaseLoginNotify,
+  firebaseSignupNotify,
 };

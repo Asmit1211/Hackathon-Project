@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   id: string;
@@ -15,6 +16,12 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ id, title, price, priceValue, image, category, cursed = false }: ProductCardProps) => {
+  const navigate = useNavigate();
+
+  const handleViewDetails = () => {
+    navigate(`/product/${id}`);
+  };
+
   return (
     <Card className="group relative overflow-hidden bg-card border-border/50 hover:border-blood-rust/50 transition-all duration-500 shadow-shift">
       <div className="relative overflow-hidden aspect-square">
@@ -35,8 +42,10 @@ const ProductCard = ({ id, title, price, priceValue, image, category, cursed = f
 
         {/* Quick view on hover */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-          <Button 
-            size="sm" 
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleViewDetails}
             className="bg-antique-brass hover:bg-antique-brass/80 text-shadow-black font-gothic tracking-wide"
           >
             <Eye className="mr-2 h-4 w-4" />
